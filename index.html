@@ -33,6 +33,7 @@
     </div>
 
     <div id="host-global-tools" class="host-fixed-tools hidden">
+        <span style="color:white; font-size:0.8rem; text-align:center;">👑 管理員功能</span>
         <button id="btn-admin-qs" class="btn-sm" style="background: #a29bfe;">📚 題庫維護</button>
         <button id="btn-hard-reset" class="btn-sm" style="background: var(--danger); color: white;">🔄 重置遊戲</button>
     </div>
@@ -40,14 +41,16 @@
     <div class="card">
         <div id="view-login">
             <h2 id="login-title" style="color: var(--primary);">準備好搶答了嗎？</h2>
-            <input type="text" id="username" placeholder="請輸入隊伍名稱">
+            <input type="text" id="username" placeholder="請輸入姓名/隊伍名">
             <button id="btn-join">下一頁</button>
         </div>
 
         <div id="view-setup" class="hidden">
             <h2 style="color: var(--primary);">遊戲設定</h2>
-            <p>欲抽取題數：<input type="number" id="q-count" value="10"></p>
-            <p>每題秒數：<input type="number" id="q-timer" value="15"></p>
+            <div style="text-align:left; padding:0 20px;">
+                <p>欲抽取題數：<input type="number" id="q-count" value="10"></p>
+                <p>每題秒數：<input type="number" id="q-timer" value="15"></p>
+            </div>
             <button id="btn-to-instruction">前往說明頁</button>
         </div>
 
@@ -57,7 +60,7 @@
                 題目包含<b>選擇題</b>與<b>是非題</b>。<br>
                 採「<b>搶答方式</b>」，全體共同競爭。<br>
                 一旦有隊伍答對，該題即結束並停止作答。<br>
-                請在倒數結束前送出答案！
+                請在倒數結束前點選答案！
             </div>
             <div id="host-start-btn" class="hidden">
                 <button id="btn-real-start" style="background:var(--success);">🎮 開始遊戲</button>
@@ -72,7 +75,7 @@
             
             <div id="player-zone" class="hidden">
                 <div id="options-area"></div>
-                <p id="feedback" style="color:var(--danger); font-weight:bold;"></p>
+                <p id="feedback" style="color:var(--danger); font-weight:bold; min-height:1.2em;"></p>
             </div>
 
             <div id="win-notification" class="hidden">
@@ -92,52 +95,46 @@
         <div id="view-result" class="hidden">
             <h2 style="color:var(--primary);">🏆 榮譽排行榜</h2>
             <table class="lb-table"><tbody id="leaderboard-body"></tbody></table>
-            <button id="btn-finish-reset" class="hidden">🔄 重置並結束</button>
+            <div id="host-reset-area" class="hidden">
+                <button id="btn-finish-reset" style="background:#dfe6e9; color:#636e72; margin-top:20px;">🔄 結束並重置</button>
+            </div>
         </div>
 
         <div id="view-admin-qs" class="hidden">
-            <h3>📚 題庫維護</h3>
+            <h3 style="color: var(--primary);">📚 題庫維護</h3>
             <select id="new-q-type">
                 <option value="choice">選擇題</option>
                 <option value="tf">是非題</option>
             </select>
             <input type="text" id="new-q-text" placeholder="題目內容">
-            <input type="text" id="new-q-opts" placeholder="選項 (用逗號隔開，是非題留空)">
-            <input type="text" id="new-q-ans" placeholder="正確答案">
+            <input type="text" id="new-q-opts" placeholder="選項 (用逗號隔開，是非題可留空)">
+            <input type="text" id="new-q-ans" placeholder="正確答案 (如 A 或 O)">
             <button id="btn-add-q">新增題目</button>
-            <div id="qs-list" style="max-height: 200px; overflow-y: auto; text-align: left; margin-top:10px;"></div>
-            <button id="btn-restore-qs" style="width:100%;">恢復預設題庫</button>
+            <div id="qs-list" style="max-height: 200px; overflow-y: auto; text-align: left; margin-top:10px; font-size:0.9rem; color: #333;"></div>
+            <button id="btn-restore-qs" style="width:100%; background:#95a5a6; color:white;">恢復預設題庫</button>
             <button id="btn-back-game" style="background:var(--dark); color:white; width:100%;">返回</button>
         </div>
     </div>
 
     <script>
+        // 更新後的 Firebase 配置
         const firebaseConfig = {
+            apiKey: "AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
+            authDomain: "exam-questions-1eb01.firebaseapp.com",
+            databaseURL: "https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "exam-questions-1eb01",
+            storageBucket: "exam-questions-1eb01.firebasestorage.app",
+            messagingSenderId: "826696852167",
+            appId: "1:826696852167:web:3001addfd34e8d91d714e2",
+            measurementId: "G-MSNXX7JNBZ"
+        };
 
-  apiKey: "AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
-
-  authDomain: "exam-questions-1eb01.firebaseapp.com",
-
-  databaseURL: "https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app",
-
-  projectId: "exam-questions-1eb01",
-
-  storageBucket: "exam-questions-1eb01.firebasestorage.app",
-
-  messagingSenderId: "826696852167",
-
-  appId: "1:826696852167:web:3001addfd34e8d91d714e2",
-
-  measurementId: "G-MSNXX7JNBZ"
-
-};
-
-        firebase.initializeApp(config);
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const isHost = window.location.search.includes('host=true');
         let myName = "";
         let localQuestions = [];
-        let timerInterval;
+        let timerInterval = null;
 
         const defaultQs = [
             { type: "choice", question: "一年四季是指：", options: "A:春夏秋冬,B:梅蘭竹菊,C:甲乙丙丁,D:東南西北", answer: "A" },
@@ -146,12 +143,14 @@
 
         function goTo(id) {
             document.querySelectorAll('.card > div').forEach(el => el.classList.add('hidden'));
-            document.getElementById(id).classList.remove('hidden');
+            const target = document.getElementById(id);
+            if(target) target.classList.remove('hidden');
+            window.scrollTo(0,0);
         }
 
         function bind(id, fn) {
             const el = document.getElementById(id);
-            if(el) el.onclick = (e) => { e.preventDefault(); fn(e); };
+            if(el) el.onclick = (e) => { e.preventDefault(); fn(); };
         }
 
         if (isHost) {
@@ -160,7 +159,7 @@
             document.getElementById('username').placeholder = "請輸入管理員密碼";
         }
 
-        // 題庫監聽
+        // 監聽題庫
         db.ref('questions').on('value', snap => {
             const data = snap.val();
             if(!data && isHost) { defaultQs.forEach(q => db.ref('questions').push(q)); return; }
@@ -168,20 +167,32 @@
             let html = "";
             for(let id in data) {
                 localQuestions.push({id, ...data[id]});
-                html += `<div style="border-bottom:1px solid #eee; padding:5px;">[${data[id].type}] ${data[id].question} <button onclick="deleteQ('${id}')" style="padding:2px 5px; box-shadow:none; background:var(--danger); color:white;">刪</button></div>`;
+                html += `<div style="border-bottom:1px solid #eee; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
+                    <span>[${data[id].type === 'choice' ? '選' : '是'}] ${data[id].question}</span>
+                    <button onclick="deleteQ('${id}')" style="padding:2px 8px; margin:0; background:var(--danger); color:white; box-shadow:none; font-size:0.7rem;">刪除</button>
+                </div>`;
             }
-            document.getElementById('qs-list').innerHTML = html;
+            document.getElementById('qs-list').innerHTML = html || "暫無題目";
         });
 
-        window.deleteQ = (id) => { if(confirm("刪除？")) db.ref('questions/'+id).remove(); };
+        window.deleteQ = (id) => { if(confirm("確定刪除此題？")) db.ref('questions/'+id).remove(); };
 
+        // 登入邏輯修正
         bind('btn-join', () => {
             const val = document.getElementById('username').value.trim();
-            if(!val) return;
+            if(!val) { alert("請輸入隊伍名稱或密碼"); return; }
+            
             if(isHost) {
-                if(val === "00000") { myName = "管理員"; goTo('view-setup'); }
-                else alert("密碼錯誤");
-            } else { myName = val; goTo('view-instruction'); }
+                if(val === "00000") { 
+                    myName = "管理員"; 
+                    goTo('view-setup'); 
+                } else { 
+                    alert("管理員密碼錯誤！"); 
+                }
+            } else { 
+                myName = val; 
+                goTo('view-instruction'); 
+            }
         });
 
         bind('btn-to-instruction', () => {
@@ -190,18 +201,28 @@
         });
 
         bind('btn-real-start', () => {
-            const count = Math.min(parseInt(document.getElementById('q-count').value), localQuestions.length);
-            const timer = parseInt(document.getElementById('q-timer').value);
+            if(localQuestions.length === 0) return alert("題庫目前沒有題目！");
+            const count = Math.min(parseInt(document.getElementById('q-count').value) || 5, localQuestions.length);
+            const timer = parseInt(document.getElementById('q-timer').value) || 15;
             const shuffled = localQuestions.sort(() => 0.5 - Math.random()).slice(0, count);
-            db.ref('game').set({ status: 'playing', qs: shuffled, idx: 0, winner: "", show: false, timeLeft: timer, maxTime: timer });
+            db.ref('game').set({ 
+                status: 'playing', 
+                qs: shuffled, 
+                idx: 0, 
+                winner: "", 
+                show: false, 
+                timeLeft: timer, 
+                maxTime: timer,
+                lastTick: Date.now()
+            });
         });
 
-        // 答題邏輯
         function submitAns(ans) {
             db.ref('game').once('value', snap => {
                 const g = snap.val();
                 if(!g || g.winner || g.timeLeft <= 0) return;
-                if(ans.trim().toUpperCase() === g.qs[g.idx].answer.trim().toUpperCase()) {
+                const correct = g.qs[g.idx].answer.trim().toUpperCase();
+                if(ans.trim().toUpperCase() === correct) {
                     db.ref('game/winner').set(myName);
                     db.ref('players/' + myName).transaction(s => (s || 0) + 10);
                 } else {
@@ -216,29 +237,34 @@
             db.ref('game').once('value', snap => {
                 const g = snap.val();
                 if(g.idx + 1 < g.qs.length) {
-                    db.ref('game').update({idx: g.idx + 1, winner: "", show: false, timeLeft: g.maxTime});
-                } else db.ref('game/status').set('finished');
+                    db.ref('game').update({idx: g.idx + 1, winner: "", show: false, timeLeft: g.maxTime, lastTick: Date.now()});
+                } else {
+                    db.ref('game/status').set('finished');
+                }
             });
         });
 
-        // 管理員功能
         bind('btn-admin-qs', () => goTo('view-admin-qs'));
-        bind('btn-restore-qs', () => { db.ref('questions').remove().then(() => defaultQs.forEach(q => db.ref('questions').push(q))); });
+        bind('btn-restore-qs', () => { if(confirm("確定恢復預設題目？")) { db.ref('questions').remove().then(() => defaultQs.forEach(q => db.ref('questions').push(q))); } });
         bind('btn-back-game', () => location.reload());
-        bind('btn-hard-reset', () => { if(confirm("全部重置？")) { db.ref('game').remove(); db.ref('players').remove(); location.reload(); } });
+        bind('btn-hard-reset', () => { if(confirm("將重置所有遊戲數據與分數，確定嗎？")) { db.ref('game').remove(); db.ref('players').remove(); location.reload(); } });
+        bind('btn-finish-reset', () => { db.ref('game').remove(); db.ref('players').remove(); location.reload(); });
+
         bind('btn-add-q', () => {
             const type = document.getElementById('new-q-type').value;
             const question = document.getElementById('new-q-text').value;
             const options = document.getElementById('new-q-opts').value;
             const answer = document.getElementById('new-q-ans').value;
             if(question && answer) {
-                db.ref('questions').push({type, question, options, answer});
+                db.ref('questions').push({type, question, options: options || (type === 'tf' ? 'O,X' : ''), answer});
                 document.getElementById('new-q-text').value = "";
+                document.getElementById('new-q-opts').value = "";
                 document.getElementById('new-q-ans').value = "";
+                alert("新增成功");
             }
         });
 
-        // 核心遊戲監聽
+        // 核心監聽
         db.ref('game').on('value', snap => {
             const g = snap.val();
             if(!g) return;
@@ -246,11 +272,10 @@
             if(g.status === 'playing') {
                 goTo('view-game');
                 const cur = g.qs[g.idx];
-                document.getElementById('q-header').innerText = `第 ${g.idx + 1} 題 (${cur.type === 'choice' ? '選擇題' : '是非題'})`;
+                document.getElementById('q-header').innerText = `第 ${g.idx + 1} 題 / 共 ${g.qs.length} 題`;
                 document.getElementById('q-content').innerText = cur.question;
                 document.getElementById('timer-display').innerText = g.timeLeft;
                 
-                // 產生選項按鈕
                 const optArea = document.getElementById('options-area');
                 optArea.innerHTML = "";
                 const opts = cur.options.split(',');
@@ -258,11 +283,12 @@
                     const btn = document.createElement('button');
                     btn.className = "opt-btn";
                     btn.innerText = o;
-                    btn.onclick = () => submitAns(o.split(':')[0]); // 取得 A, B, C 或 O, X
+                    btn.onclick = () => submitAns(o.includes(':') ? o.split(':')[0] : o);
                     optArea.appendChild(btn);
                 });
 
                 if(g.winner) {
+                    clearInterval(timerInterval);
                     document.getElementById('player-zone').classList.add('hidden');
                     document.getElementById('win-notification').classList.remove('hidden');
                     document.getElementById('win-player-name').innerText = g.winner;
@@ -275,9 +301,14 @@
                         document.getElementById('correct-ans').innerText = cur.answer;
                     }
                 } else if (g.timeLeft <= 0) {
+                    clearInterval(timerInterval);
                     document.getElementById('player-zone').classList.add('hidden');
                     document.getElementById('q-content').innerText = "時間到！";
                     if(isHost) document.getElementById('host-actions').classList.remove('hidden');
+                    if(g.show) {
+                        document.getElementById('ans-reveal').classList.remove('hidden');
+                        document.getElementById('correct-ans').innerText = cur.answer;
+                    }
                 } else {
                     if(!isHost) document.getElementById('player-zone').classList.remove('hidden');
                     document.getElementById('win-notification').classList.add('hidden');
@@ -285,29 +316,34 @@
                     document.getElementById('host-actions').classList.add('hidden');
                 }
 
-                // 主持人負責倒數計時計時
-                if(isHost) {
-                    clearInterval(timerInterval);
-                    if(!g.winner && g.timeLeft > 0) {
+                // 主持人負責倒數計時邏輯
+                if(isHost && !g.winner && g.timeLeft > 0) {
+                    if(!timerInterval) {
                         timerInterval = setInterval(() => {
-                            db.ref('game/timeLeft').transaction(t => (t || 0) - 1);
+                            db.ref('game/timeLeft').transaction(t => {
+                                if(t > 0) return t - 1;
+                                return 0;
+                            });
                         }, 1000);
                     }
+                } else {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
                 }
             } else if(g.status === 'finished') {
                 goTo('view-result');
-                if(isHost) document.getElementById('btn-finish-reset').classList.remove('hidden');
+                if(isHost) document.getElementById('host-reset-area').classList.remove('hidden');
                 db.ref('players').once('value', pSnap => {
-                    const ps = pSnap.val();
+                    const ps = pSnap.val() || {};
                     let list = [];
                     for(let k in ps) list.push({n: k, s: ps[k]});
                     list.sort((a,b) => b.s - a.s);
-                    document.getElementById('leaderboard-body').innerHTML = list.map((p, i) => `<tr><td class="lb-cell">${i+1}</td><td class="lb-cell">${p.n}</td><td class="lb-cell">${p.s}</td></tr>`).join('');
+                    document.getElementById('leaderboard-body').innerHTML = list.map((p, i) => 
+                        `<tr><td class="lb-cell" style="font-weight:bold">${i+1}</td><td class="lb-cell">${p.n}</td><td class="lb-cell">${p.s} 分</td></tr>`
+                    ).join('');
                 });
             }
         });
-        
-        bind('btn-finish-reset', () => { db.ref('game').remove(); db.ref('players').remove(); location.reload(); });
     </script>
 </body>
 </html>
