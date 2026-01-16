@@ -1,349 +1,306 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>互動搶答大賽 Pro+</title>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <style>
-        :root { --primary: #6c5ce7; --accent: #fdcb6e; --danger: #ff7675; --success: #55efc4; --dark: #2d3436; }
-        body { font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: radial-gradient(circle, #6c5ce7 0%, #4834d4 100%); color: white; margin: 0; padding: 10px 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; touch-action: manipulation; }
-        .header-container { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 15px; width: 100%; }
-        .event-title { font-size: clamp(1.2rem, 5.5vw, 2.5rem); font-weight: 900; color: var(--accent); text-shadow: 2px 2px 0px #d35400; margin: 0; white-space: nowrap; width: 95%; text-align: center; }
-        .card { background: white; color: var(--dark); padding: 20px; border-radius: 25px; width: 88%; max-width: 450px; box-shadow: 0 15px 35px rgba(0,0,0,0.3); text-align: center; position: relative; z-index: 10; }
-        .hidden { display: none !important; }
-        .instruction-box { text-align: left; background: #f1f2f6; padding: 20px; border-radius: 12px; color: #444; line-height: 1.8; margin-bottom: 15px; font-size: 1rem; }
-        .q-box { font-size: 24px; margin: 15px 0; min-height: 80px; display: flex; justify-content: center; align-items: center; background: #f1f2f6; border-radius: 15px; padding: 15px; font-weight: bold; color: var(--dark); }
-        .timer-badge { font-size: 2rem; color: var(--danger); font-weight: bold; margin: 10px 0; }
-        input, select { padding: 12px; font-size: 1rem; width: 90%; margin: 8px 0; border: 2px solid #dfe6e9; border-radius: 10px; text-align: center; }
-        button { background: var(--accent); color: #d35400; border: none; padding: 12px 20px; font-size: 1.1rem; border-radius: 50px; cursor: pointer; font-weight: 900; box-shadow: 0 5px 0 #e67e22; margin: 8px 5px; }
-        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #e67e22; }
-        .opt-btn { width: 95%; margin: 5px 0; background: #eee; color: var(--dark); box-shadow: 0 4px 0 #ccc; }
-        .host-fixed-tools { position: fixed; bottom: 20px; right: 20px; background: rgba(0, 0, 0, 0.95); padding: 15px; border-radius: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 99999; box-shadow: 0 0 15px rgba(0,0,0,0.5); }
-        .btn-sm { font-size: 0.85rem; padding: 12px; min-width: 120px; box-shadow: 0 3px 0 #333; }
-        .lb-table { width: 100%; border-collapse: collapse; }
-        .lb-cell { padding: 12px 5px; border-bottom: 1px solid #eee; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>互動搶答大賽 Pro+</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+<style>
+:root {
+    --primary:#6c5ce7;
+    --accent:#fdcb6e;
+    --danger:#ff7675;
+    --success:#55efc4;
+    --dark:#2d3436;
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: 'PingFang TC','Microsoft JhengHei',sans-serif;
+    background: radial-gradient(circle,#6c5ce7 0%,#4834d4 100%);
+    color:white;
+    margin:0;
+    padding:10px 0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    touch-action:manipulation;
+}
+
+/* ===== Header + Logo ===== */
+.header-container {
+    width:100%;
+    display:flex;
+    justify-content:center;
+    margin-bottom:15px;
+}
+.title-wrap {
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+.event-logo {
+    height:48px;
+}
+.event-title {
+    font-size:clamp(1.2rem,5.5vw,2.5rem);
+    font-weight:900;
+    color:var(--accent);
+    text-shadow:2px 2px 0 #d35400;
+    white-space:nowrap;
+}
+
+/* ===== Card ===== */
+.card {
+    background:white;
+    color:var(--dark);
+    padding:20px;
+    border-radius:25px;
+    width:88%;
+    max-width:450px;
+    box-shadow:0 15px 35px rgba(0,0,0,.3);
+    text-align:center;
+}
+
+.hidden { display:none!important; }
+
+.q-box {
+    background:#f1f2f6;
+    padding:15px;
+    border-radius:15px;
+    font-weight:bold;
+    font-size:1.4rem;
+    min-height:80px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.timer-badge {
+    font-size:2rem;
+    font-weight:bold;
+    color:var(--danger);
+}
+
+input,select {
+    width:90%;
+    padding:12px;
+    font-size:1rem;
+    border-radius:10px;
+    border:2px solid #dfe6e9;
+    margin:8px 0;
+    text-align:center;
+}
+
+button {
+    background:var(--accent);
+    color:#d35400;
+    border:none;
+    padding:14px;
+    font-size:1.1rem;
+    border-radius:50px;
+    font-weight:900;
+    cursor:pointer;
+    margin:6px;
+}
+
+.opt-btn {
+    width:100%;
+    background:#eee;
+    color:var(--dark);
+    margin:6px 0;
+    min-height:56px;
+}
+
+/* ===== Host tools ===== */
+.host-fixed-tools {
+    position:fixed;
+    right:20px;
+    bottom:20px;
+    background:rgba(0,0,0,.95);
+    padding:15px;
+    border-radius:20px;
+    z-index:999;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+/* ===== Responsive ===== */
+@media(max-width:768px){
+    button{font-size:1.2rem;padding:16px}
+    .card{width:94%}
+    .event-logo{height:36px}
+}
+@media(min-width:768px){
+    .card{max-width:520px}
+}
+</style>
 </head>
+
 <body>
 
-    <div class="header-container">
+<!-- ===== Header ===== -->
+<div class="header-container">
+    <div class="title-wrap">
+        <img src="logo.png" class="event-logo">
         <div class="event-title">小太陽領袖營</div>
     </div>
+</div>
 
-    <div id="host-global-tools" class="host-fixed-tools hidden">
-        <span style="color:white; font-size:0.8rem; text-align:center;">👑 管理員功能</span>
-        <button id="btn-admin-qs" class="btn-sm" style="background: #a29bfe;">📚 題庫維護</button>
-        <button id="btn-hard-reset" class="btn-sm" style="background: var(--danger); color: white;">🔄 重置遊戲</button>
-    </div>
+<!-- ===== Host Tools ===== -->
+<div id="host-tools" class="host-fixed-tools hidden">
+    <span style="font-size:.8rem">👑 管理員</span>
+    <button onclick="location.reload()">重新整理</button>
+</div>
 
-    <div class="card">
-        <div id="view-login">
-            <h2 id="login-title" style="color: var(--primary);">準備好搶答了嗎？</h2>
-            <input type="text" id="username" placeholder="請輸入姓名/隊伍名">
-            <button id="btn-join">下一頁</button>
-        </div>
+<div class="card">
 
-        <div id="view-setup" class="hidden">
-            <h2 style="color: var(--primary);">遊戲設定</h2>
-            <div style="text-align:left; padding:0 20px;">
-                <p>欲抽取題數：<input type="number" id="q-count" value="10"></p>
-                <p>每題秒數：<input type="number" id="q-timer" value="15"></p>
-            </div>
-            <button id="btn-to-instruction">前往說明頁</button>
-        </div>
+<!-- ===== Login ===== -->
+<div id="view-login">
+    <h2 style="color:var(--primary)">準備好搶答了嗎？</h2>
+    <input id="username" placeholder="姓名 / 隊伍">
+    <button id="btn-join">進入</button>
+</div>
 
-        <div id="view-instruction" class="hidden">
-            <h2 style="color: var(--primary);">遊戲說明</h2>
-            <div class="instruction-box">
-                題目包含<b>選擇題</b>與<b>是非題</b>。<br>
-                採「<b>搶答方式</b>」，全體共同競爭。<br>
-                一旦有隊伍答對，該題即結束並停止作答。<br>
-                請在倒數結束前點選答案！
-            </div>
-            <div id="host-start-btn" class="hidden">
-                <button id="btn-real-start" style="background:var(--success);">🎮 開始遊戲</button>
-            </div>
-            <p id="wait-msg">等待主持人開始...</p>
-        </div>
+<!-- ===== Instruction ===== -->
+<div id="view-instruction" class="hidden">
+    <h2 style="color:var(--primary)">遊戲說明</h2>
+    <p style="line-height:1.8;text-align:left">
+        • 全體同時搶答<br>
+        • 第一個答對即得分<br>
+        • 每題只能答一次
+    </p>
+    <p>等待主持人開始…</p>
+</div>
 
-        <div id="view-game" class="hidden">
-            <div id="q-header" style="font-weight:bold; color:var(--primary);"></div>
-            <div id="timer-display" class="timer-badge"></div>
-            <div id="q-content" class="q-box"></div>
-            
-            <div id="player-zone" class="hidden">
-                <div id="options-area"></div>
-                <p id="feedback" style="color:var(--danger); font-weight:bold; min-height:1.2em;"></p>
-            </div>
+<!-- ===== Game ===== -->
+<div id="view-game" class="hidden">
+    <div id="q-header"></div>
+    <div id="timer" class="timer-badge"></div>
+    <div id="q-content" class="q-box"></div>
+    <div id="options"></div>
+    <p id="feedback" style="color:var(--danger);font-weight:bold"></p>
+</div>
 
-            <div id="win-notification" class="hidden">
-                <div style="background:var(--success); color:#006266; padding:15px; border-radius:15px; font-weight:bold;">🎉 <span id="win-player-name"></span> 搶到了！</div>
-            </div>
+<!-- ===== Result ===== -->
+<div id="view-result" class="hidden">
+    <h2 style="color:var(--primary)">🏆 排行榜</h2>
+    <div id="result-list"></div>
+</div>
 
-            <div id="ans-reveal" class="hidden" style="background:#e1f5fe; padding:15px; border-radius:20px; margin-top:10px;">
-                <h3 style="margin:0;">正解：<span id="correct-ans" style="color:#0288d1;"></span></h3>
-            </div>
+</div>
 
-            <div id="host-actions" class="hidden">
-                <button id="btn-reveal">揭曉答案</button>
-                <button id="btn-next" class="hidden" style="background:var(--primary); color:white;">下一題 ➔</button>
-            </div>
-        </div>
+<script>
+/* ===== Firebase ===== */
+firebase.initializeApp({
+    apiKey:"AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
+    databaseURL:"https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
+const db = firebase.database();
 
-        <div id="view-result" class="hidden">
-            <h2 style="color:var(--primary);">🏆 榮譽排行榜</h2>
-            <table class="lb-table"><tbody id="leaderboard-body"></tbody></table>
-            <div id="host-reset-area" class="hidden">
-                <button id="btn-finish-reset" style="background:#dfe6e9; color:#636e72; margin-top:20px;">🔄 結束並重置</button>
-            </div>
-        </div>
+/* ===== State ===== */
+const isHost = location.search.includes('host=true');
+let myName="";
+let lastIdx=null;
+let timerInterval=null;
 
-        <div id="view-admin-qs" class="hidden">
-            <h3 style="color: var(--primary);">📚 題庫維護</h3>
-            <select id="new-q-type">
-                <option value="choice">選擇題</option>
-                <option value="tf">是非題</option>
-            </select>
-            <input type="text" id="new-q-text" placeholder="題目內容">
-            <input type="text" id="new-q-opts" placeholder="選項 (用逗號隔開，是非題可留空)">
-            <input type="text" id="new-q-ans" placeholder="正確答案 (如 A 或 O)">
-            <button id="btn-add-q">新增題目</button>
-            <div id="qs-list" style="max-height: 200px; overflow-y: auto; text-align: left; margin-top:10px; font-size:0.9rem; color: #333;"></div>
-            <button id="btn-restore-qs" style="width:100%; background:#95a5a6; color:white;">恢復預設題庫</button>
-            <button id="btn-back-game" style="background:var(--dark); color:white; width:100%;">返回</button>
-        </div>
-    </div>
+/* ===== View ===== */
+const go=v=>{
+    document.querySelectorAll('.card>div').forEach(d=>d.classList.add('hidden'));
+    document.getElementById(v).classList.remove('hidden');
+};
 
-    <script>
-        // 更新後的 Firebase 配置
-        const firebaseConfig = {
-            apiKey: "AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
-            authDomain: "exam-questions-1eb01.firebaseapp.com",
-            databaseURL: "https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "exam-questions-1eb01",
-            storageBucket: "exam-questions-1eb01.firebasestorage.app",
-            messagingSenderId: "826696852167",
-            appId: "1:826696852167:web:3001addfd34e8d91d714e2",
-            measurementId: "G-MSNXX7JNBZ"
-        };
+/* ===== Login ===== */
+document.getElementById('btn-join').onclick=()=>{
+    const v=username.value.trim();
+    if(!v)return alert("請輸入名稱");
+    myName=v;
+    go('view-instruction');
+};
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const isHost = window.location.search.includes('host=true');
-        let myName = "";
-        let localQuestions = [];
-        let timerInterval = null;
+/* ===== Game Listener ===== */
+db.ref('game').on('value',snap=>{
+    const g=snap.val();
+    if(!g)return;
 
-        const defaultQs = [
-            { type: "choice", question: "一年四季是指：", options: "A:春夏秋冬,B:梅蘭竹菊,C:甲乙丙丁,D:東南西北", answer: "A" },
-            { type: "tf", question: "西瓜是一種動物", options: "O,X", answer: "X" }
-        ];
+    if(g.status==='playing'){
+        go('view-game');
+        const q=g.qs[g.idx];
+        q-header.innerText=`第 ${g.idx+1} 題 / ${g.qs.length}`;
+        q-content.innerText=q.question;
 
-        function goTo(id) {
-            document.querySelectorAll('.card > div').forEach(el => el.classList.add('hidden'));
-            const target = document.getElementById(id);
-            if(target) target.classList.remove('hidden');
-            window.scrollTo(0,0);
-        }
-
-        function bind(id, fn) {
-            const el = document.getElementById(id);
-            if(el) el.onclick = (e) => { e.preventDefault(); fn(); };
-        }
-
-        if (isHost) {
-            document.getElementById('host-global-tools').classList.remove('hidden');
-            document.getElementById('login-title').innerText = "🔑 主持人登入";
-            document.getElementById('username').placeholder = "請輸入管理員密碼";
-        }
-
-        // 監聽題庫
-        db.ref('questions').on('value', snap => {
-            const data = snap.val();
-            if(!data && isHost) { defaultQs.forEach(q => db.ref('questions').push(q)); return; }
-            localQuestions = [];
-            let html = "";
-            for(let id in data) {
-                localQuestions.push({id, ...data[id]});
-                html += `<div style="border-bottom:1px solid #eee; padding:8px 0; display:flex; justify-content:space-between; align-items:center;">
-                    <span>[${data[id].type === 'choice' ? '選' : '是'}] ${data[id].question}</span>
-                    <button onclick="deleteQ('${id}')" style="padding:2px 8px; margin:0; background:var(--danger); color:white; box-shadow:none; font-size:0.7rem;">刪除</button>
-                </div>`;
-            }
-            document.getElementById('qs-list').innerHTML = html || "暫無題目";
-        });
-
-        window.deleteQ = (id) => { if(confirm("確定刪除此題？")) db.ref('questions/'+id).remove(); };
-
-        // 登入邏輯修正
-        bind('btn-join', () => {
-            const val = document.getElementById('username').value.trim();
-            if(!val) { alert("請輸入隊伍名稱或密碼"); return; }
-            
-            if(isHost) {
-                if(val === "00000") { 
-                    myName = "管理員"; 
-                    goTo('view-setup'); 
-                } else { 
-                    alert("管理員密碼錯誤！"); 
-                }
-            } else { 
-                myName = val; 
-                goTo('view-instruction'); 
-            }
-        });
-
-        bind('btn-to-instruction', () => {
-            goTo('view-instruction');
-            if(isHost) document.getElementById('host-start-btn').classList.remove('hidden');
-        });
-
-        bind('btn-real-start', () => {
-            if(localQuestions.length === 0) return alert("題庫目前沒有題目！");
-            const count = Math.min(parseInt(document.getElementById('q-count').value) || 5, localQuestions.length);
-            const timer = parseInt(document.getElementById('q-timer').value) || 15;
-            const shuffled = localQuestions.sort(() => 0.5 - Math.random()).slice(0, count);
-            db.ref('game').set({ 
-                status: 'playing', 
-                qs: shuffled, 
-                idx: 0, 
-                winner: "", 
-                show: false, 
-                timeLeft: timer, 
-                maxTime: timer,
-                lastTick: Date.now()
-            });
-        });
-
-        function submitAns(ans) {
-            db.ref('game').once('value', snap => {
-                const g = snap.val();
-                if(!g || g.winner || g.timeLeft <= 0) return;
-                const correct = g.qs[g.idx].answer.trim().toUpperCase();
-                if(ans.trim().toUpperCase() === correct) {
-                    db.ref('game/winner').set(myName);
-                    db.ref('players/' + myName).transaction(s => (s || 0) + 10);
-                } else {
-                    document.getElementById('feedback').innerText = "❌ 答錯了！";
-                    setTimeout(() => document.getElementById('feedback').innerText = "", 1500);
-                }
+        if(g.idx!==lastIdx){
+            lastIdx=g.idx;
+            options.innerHTML="";
+            q.options.split(',').forEach(o=>{
+                const b=document.createElement('button');
+                b.className='opt-btn';
+                b.innerText=o;
+                b.onclick=()=>{
+                    b.disabled=true;
+                    submit(o.includes(':')?o.split(':')[0]:o);
+                };
+                options.appendChild(b);
             });
         }
 
-        bind('btn-reveal', () => db.ref('game/show').set(true));
-        bind('btn-next', () => {
-            db.ref('game').once('value', snap => {
-                const g = snap.val();
-                if(g.idx + 1 < g.qs.length) {
-                    db.ref('game').update({idx: g.idx + 1, winner: "", show: false, timeLeft: g.maxTime, lastTick: Date.now()});
-                } else {
-                    db.ref('game/status').set('finished');
-                }
+        if(isHost && !timerInterval){
+            timerInterval=setInterval(()=>{
+                db.ref('game/timeLeft').transaction(t=>t>0?t-1:0);
+            },1000);
+        }
+
+        if(g.timeLeft<=3) navigator.vibrate?.(150);
+    }
+
+    if(g.status==='finished'){
+        go('view-result');
+        db.ref('players').once('value',s=>{
+            let html="";
+            const p=s.val()||{};
+            Object.entries(p).sort((a,b)=>b[1]-a[1])
+            .forEach(([n,sc],i)=>{
+                html+=`${i+1}. ${n}：${sc}分<br>`;
             });
+            result-list.innerHTML=html;
         });
+    }
+});
 
-        bind('btn-admin-qs', () => goTo('view-admin-qs'));
-        bind('btn-restore-qs', () => { if(confirm("確定恢復預設題目？")) { db.ref('questions').remove().then(() => defaultQs.forEach(q => db.ref('questions').push(q))); } });
-        bind('btn-back-game', () => location.reload());
-        bind('btn-hard-reset', () => { if(confirm("將重置所有遊戲數據與分數，確定嗎？")) { db.ref('game').remove(); db.ref('players').remove(); location.reload(); } });
-        bind('btn-finish-reset', () => { db.ref('game').remove(); db.ref('players').remove(); location.reload(); });
+/* ===== Timer ===== */
+db.ref('game/timeLeft').on('value',s=>{
+    if(s.exists()) timer.innerText=s.val();
+});
 
-        bind('btn-add-q', () => {
-            const type = document.getElementById('new-q-type').value;
-            const question = document.getElementById('new-q-text').value;
-            const options = document.getElementById('new-q-opts').value;
-            const answer = document.getElementById('new-q-ans').value;
-            if(question && answer) {
-                db.ref('questions').push({type, question, options: options || (type === 'tf' ? 'O,X' : ''), answer});
-                document.getElementById('new-q-text').value = "";
-                document.getElementById('new-q-opts').value = "";
-                document.getElementById('new-q-ans').value = "";
-                alert("新增成功");
-            }
-        });
-
-        // 核心監聽
-        db.ref('game').on('value', snap => {
-            const g = snap.val();
-            if(!g) return;
-
-            if(g.status === 'playing') {
-                goTo('view-game');
-                const cur = g.qs[g.idx];
-                document.getElementById('q-header').innerText = `第 ${g.idx + 1} 題 / 共 ${g.qs.length} 題`;
-                document.getElementById('q-content').innerText = cur.question;
-                document.getElementById('timer-display').innerText = g.timeLeft;
-                
-                const optArea = document.getElementById('options-area');
-                optArea.innerHTML = "";
-                const opts = cur.options.split(',');
-                opts.forEach(o => {
-                    const btn = document.createElement('button');
-                    btn.className = "opt-btn";
-                    btn.innerText = o;
-                    btn.onclick = () => submitAns(o.includes(':') ? o.split(':')[0] : o);
-                    optArea.appendChild(btn);
-                });
-
-                if(g.winner) {
-                    clearInterval(timerInterval);
-                    document.getElementById('player-zone').classList.add('hidden');
-                    document.getElementById('win-notification').classList.remove('hidden');
-                    document.getElementById('win-player-name').innerText = g.winner;
-                    if(isHost) {
-                        document.getElementById('host-actions').classList.remove('hidden');
-                        document.getElementById('btn-next').classList.toggle('hidden', !g.show);
-                    }
-                    if(g.show) {
-                        document.getElementById('ans-reveal').classList.remove('hidden');
-                        document.getElementById('correct-ans').innerText = cur.answer;
-                    }
-                } else if (g.timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    document.getElementById('player-zone').classList.add('hidden');
-                    document.getElementById('q-content').innerText = "時間到！";
-                    if(isHost) document.getElementById('host-actions').classList.remove('hidden');
-                    if(g.show) {
-                        document.getElementById('ans-reveal').classList.remove('hidden');
-                        document.getElementById('correct-ans').innerText = cur.answer;
-                    }
-                } else {
-                    if(!isHost) document.getElementById('player-zone').classList.remove('hidden');
-                    document.getElementById('win-notification').classList.add('hidden');
-                    document.getElementById('ans-reveal').classList.add('hidden');
-                    document.getElementById('host-actions').classList.add('hidden');
-                }
-
-                // 主持人負責倒數計時邏輯
-                if(isHost && !g.winner && g.timeLeft > 0) {
-                    if(!timerInterval) {
-                        timerInterval = setInterval(() => {
-                            db.ref('game/timeLeft').transaction(t => {
-                                if(t > 0) return t - 1;
-                                return 0;
-                            });
-                        }, 1000);
-                    }
-                } else {
-                    clearInterval(timerInterval);
-                    timerInterval = null;
-                }
-            } else if(g.status === 'finished') {
-                goTo('view-result');
-                if(isHost) document.getElementById('host-reset-area').classList.remove('hidden');
-                db.ref('players').once('value', pSnap => {
-                    const ps = pSnap.val() || {};
-                    let list = [];
-                    for(let k in ps) list.push({n: k, s: ps[k]});
-                    list.sort((a,b) => b.s - a.s);
-                    document.getElementById('leaderboard-body').innerHTML = list.map((p, i) => 
-                        `<tr><td class="lb-cell" style="font-weight:bold">${i+1}</td><td class="lb-cell">${p.n}</td><td class="lb-cell">${p.s} 分</td></tr>`
-                    ).join('');
-                });
-            }
-        });
-    </script>
+/* ===== Submit ===== */
+function submit(ans){
+    db.ref('game').once('value',s=>{
+        const g=s.val();
+        if(g.winner)return;
+        if(ans.toUpperCase()===g.qs[g.idx].answer){
+            db.ref('game/winner').transaction(w=>{
+                if(w)return;
+                return myName;
+            },(_,ok)=>{
+                if(ok) db.ref('players/'+myName)
+                    .transaction(v=>(v||0)+10);
+            });
+        }else{
+            feedback.innerText="❌ 錯誤";
+            setTimeout(()=>feedback.innerText="",1200);
+        }
+    });
+}
+</script>
 </body>
 </html>
