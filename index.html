@@ -6,7 +6,6 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>互動搶答大賽 Pro+</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
@@ -16,138 +15,78 @@
     --accent:#fdcb6e;
     --danger:#ff7675;
     --success:#55efc4;
-    --dark:#2d3436;
 }
-
-* {
-    -webkit-tap-highlight-color: transparent;
-}
-
-body {
-    font-family: 'PingFang TC','Microsoft JhengHei',sans-serif;
-    background: radial-gradient(circle,#6c5ce7 0%,#4834d4 100%);
-    color:white;
+*{-webkit-tap-highlight-color:transparent}
+body{
     margin:0;
-    padding:10px 0;
+    font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
+    background:radial-gradient(circle,#6c5ce7,#4834d4);
+    color:white;
     display:flex;
     flex-direction:column;
     align-items:center;
-    min-height:100vh;
-    touch-action:manipulation;
 }
-
-/* ===== Header + Logo ===== */
-.header-container {
-    width:100%;
-    display:flex;
-    justify-content:center;
-    margin-bottom:15px;
-}
-.title-wrap {
-    display:flex;
-    align-items:center;
-    gap:10px;
-}
-.event-logo {
-    height:48px;
-}
-.event-title {
-    font-size:clamp(1.2rem,5.5vw,2.5rem);
+.header-container{margin:15px 0}
+.title-wrap{display:flex;align-items:center;gap:10px}
+.event-logo{height:42px}
+.event-title{
+    font-size:clamp(1.3rem,6vw,2.4rem);
     font-weight:900;
     color:var(--accent);
-    text-shadow:2px 2px 0 #d35400;
-    white-space:nowrap;
+    text-shadow:2px 2px #d35400;
 }
-
-/* ===== Card ===== */
-.card {
+.card{
     background:white;
-    color:var(--dark);
+    color:#2d3436;
+    width:90%;
+    max-width:460px;
     padding:20px;
     border-radius:25px;
-    width:88%;
-    max-width:450px;
-    box-shadow:0 15px 35px rgba(0,0,0,.3);
-    text-align:center;
 }
-
-.hidden { display:none!important; }
-
-.q-box {
+.hidden{display:none}
+.q-box{
     background:#f1f2f6;
     padding:15px;
     border-radius:15px;
-    font-weight:bold;
     font-size:1.4rem;
-    min-height:80px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-}
-
-.timer-badge {
-    font-size:2rem;
     font-weight:bold;
-    color:var(--danger);
 }
-
-input,select {
-    width:90%;
-    padding:12px;
-    font-size:1rem;
-    border-radius:10px;
-    border:2px solid #dfe6e9;
-    margin:8px 0;
-    text-align:center;
-}
-
-button {
-    background:var(--accent);
-    color:#d35400;
-    border:none;
-    padding:14px;
-    font-size:1.1rem;
-    border-radius:50px;
-    font-weight:900;
-    cursor:pointer;
-    margin:6px;
-}
-
-.opt-btn {
+.timer{font-size:2.2rem;color:var(--danger);font-weight:900}
+.opt-btn{
     width:100%;
-    background:#eee;
-    color:var(--dark);
+    padding:16px;
     margin:6px 0;
-    min-height:56px;
+    border:none;
+    border-radius:40px;
+    font-size:1.1rem;
 }
-
-/* ===== Host tools ===== */
-.host-fixed-tools {
+.host-panel{
     position:fixed;
-    right:20px;
-    bottom:20px;
-    background:rgba(0,0,0,.95);
+    right:15px;
+    bottom:15px;
+    background:#000;
+    color:white;
     padding:15px;
     border-radius:20px;
-    z-index:999;
     display:flex;
     flex-direction:column;
-    gap:10px;
+    gap:8px;
+    z-index:999;
 }
-
-/* ===== Responsive ===== */
-@media(max-width:768px){
-    button{font-size:1.2rem;padding:16px}
-    .card{width:94%}
-    .event-logo{height:36px}
-}
-@media(min-width:768px){
-    .card{max-width:520px}
+.host-panel button{
+    font-size:.9rem;
+    padding:10px;
 }
 </style>
 </head>
 
 <body>
+
+<!-- ===== 音效 ===== -->
+<audio id="snd-beep" src="beep.mp3"></audio>
+<audio id="snd-ok" src="correct.mp3"></audio>
+<audio id="snd-ng" src="wrong.mp3"></audio>
+<audio id="snd-finish" src="finish.mp3"></audio>
 
 <!-- ===== Header ===== -->
 <div class="header-container">
@@ -157,45 +96,33 @@ button {
     </div>
 </div>
 
-<!-- ===== Host Tools ===== -->
-<div id="host-tools" class="host-fixed-tools hidden">
-    <span style="font-size:.8rem">👑 管理員</span>
-    <button onclick="location.reload()">重新整理</button>
+<!-- ===== Host Panel ===== -->
+<div id="host-panel" class="host-panel hidden">
+    <div style="font-size:.8rem">👑 主持人控制</div>
+    <button onclick="startGame()">🎮 開始</button>
+    <button onclick="reveal()">👀 揭曉</button>
+    <button onclick="nextQ()">⏭ 下一題</button>
+    <button onclick="resetGame()">🔄 重置</button>
 </div>
 
 <div class="card">
 
-<!-- ===== Login ===== -->
 <div id="view-login">
-    <h2 style="color:var(--primary)">準備好搶答了嗎？</h2>
     <input id="username" placeholder="姓名 / 隊伍">
-    <button id="btn-join">進入</button>
+    <button onclick="join()">進入</button>
 </div>
 
-<!-- ===== Instruction ===== -->
-<div id="view-instruction" class="hidden">
-    <h2 style="color:var(--primary)">遊戲說明</h2>
-    <p style="line-height:1.8;text-align:left">
-        • 全體同時搶答<br>
-        • 第一個答對即得分<br>
-        • 每題只能答一次
-    </p>
-    <p>等待主持人開始…</p>
-</div>
-
-<!-- ===== Game ===== -->
 <div id="view-game" class="hidden">
     <div id="q-header"></div>
-    <div id="timer" class="timer-badge"></div>
+    <div id="timer" class="timer"></div>
     <div id="q-content" class="q-box"></div>
     <div id="options"></div>
-    <p id="feedback" style="color:var(--danger);font-weight:bold"></p>
+    <div id="feedback"></div>
 </div>
 
-<!-- ===== Result ===== -->
 <div id="view-result" class="hidden">
-    <h2 style="color:var(--primary)">🏆 排行榜</h2>
-    <div id="result-list"></div>
+    <h2>🏆 排行榜</h2>
+    <div id="result"></div>
 </div>
 
 </div>
@@ -203,103 +130,122 @@ button {
 <script>
 /* ===== Firebase ===== */
 firebase.initializeApp({
-    apiKey:"AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
-    databaseURL:"https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey:"AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
+  databaseURL:"https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app"
 });
-const db = firebase.database();
+const db=firebase.database();
+const isHost=location.search.includes('host=true');
+
+/* ===== Audio ===== */
+const snd={
+  beep:document.getElementById('snd-beep'),
+  ok:document.getElementById('snd-ok'),
+  ng:document.getElementById('snd-ng'),
+  fin:document.getElementById('snd-finish')
+};
 
 /* ===== State ===== */
-const isHost = location.search.includes('host=true');
-let myName="";
-let lastIdx=null;
-let timerInterval=null;
+let myName="",lastIdx=null,answered=false;
 
 /* ===== View ===== */
-const go=v=>{
-    document.querySelectorAll('.card>div').forEach(d=>d.classList.add('hidden'));
-    document.getElementById(v).classList.remove('hidden');
+const show=v=>{
+ document.querySelectorAll('.card>div').forEach(d=>d.classList.add('hidden'));
+ document.getElementById(v).classList.remove('hidden');
 };
 
-/* ===== Login ===== */
-document.getElementById('btn-join').onclick=()=>{
-    const v=username.value.trim();
-    if(!v)return alert("請輸入名稱");
-    myName=v;
-    go('view-instruction');
-};
+/* ===== Join ===== */
+function join(){
+ myName=username.value.trim();
+ if(!myName)return alert("請輸入名稱");
+ show('view-game');
+ if(isHost) document.getElementById('host-panel').classList.remove('hidden');
+}
 
-/* ===== Game Listener ===== */
-db.ref('game').on('value',snap=>{
-    const g=snap.val();
-    if(!g)return;
+/* ===== Host Actions ===== */
+function startGame(){
+ db.ref('game').set({
+  status:'playing',
+  idx:0,
+  timeLeft:15,
+  winner:'',
+  qs:[
+    {question:'一年四季是？',options:'A:春夏秋冬,B:東南西北',answer:'A'},
+    {question:'西瓜是動物？',options:'O,X',answer:'X'}
+  ]
+ });
+}
+function reveal(){ db.ref('game/show').set(true); }
+function nextQ(){
+ db.ref('game').once('value',s=>{
+  const g=s.val();
+  if(g.idx+1<g.qs.length)
+    db.ref('game').update({idx:g.idx+1,timeLeft:15,winner:'',show:false});
+  else db.ref('game/status').set('finished');
+ });
+}
+function resetGame(){
+ db.ref('game').remove();
+ db.ref('players').remove();
+ location.reload();
+}
 
-    if(g.status==='playing'){
-        go('view-game');
-        const q=g.qs[g.idx];
-        q-header.innerText=`第 ${g.idx+1} 題 / ${g.qs.length}`;
-        q-content.innerText=q.question;
-
-        if(g.idx!==lastIdx){
-            lastIdx=g.idx;
-            options.innerHTML="";
-            q.options.split(',').forEach(o=>{
-                const b=document.createElement('button');
-                b.className='opt-btn';
-                b.innerText=o;
-                b.onclick=()=>{
-                    b.disabled=true;
-                    submit(o.includes(':')?o.split(':')[0]:o);
-                };
-                options.appendChild(b);
-            });
-        }
-
-        if(isHost && !timerInterval){
-            timerInterval=setInterval(()=>{
-                db.ref('game/timeLeft').transaction(t=>t>0?t-1:0);
-            },1000);
-        }
-
-        if(g.timeLeft<=3) navigator.vibrate?.(150);
-    }
-
-    if(g.status==='finished'){
-        go('view-result');
-        db.ref('players').once('value',s=>{
-            let html="";
-            const p=s.val()||{};
-            Object.entries(p).sort((a,b)=>b[1]-a[1])
-            .forEach(([n,sc],i)=>{
-                html+=`${i+1}. ${n}：${sc}分<br>`;
-            });
-            result-list.innerHTML=html;
-        });
-    }
+/* ===== Game ===== */
+db.ref('game').on('value',s=>{
+ const g=s.val(); if(!g)return;
+ if(g.status==='playing'){
+  show('view-game');
+  const q=g.qs[g.idx];
+  q-header.innerText=`第 ${g.idx+1} 題`;
+  q-content.innerText=q.question;
+  if(g.idx!==lastIdx){
+    lastIdx=g.idx; answered=false;
+    options.innerHTML='';
+    q.options.split(',').forEach(o=>{
+      const b=document.createElement('button');
+      b.className='opt-btn';
+      b.innerText=o;
+      b.onclick=()=>submit(o.includes(':')?o.split(':')[0]:o);
+      options.appendChild(b);
+    });
+  }
+  if(g.timeLeft<=3 && g.timeLeft>0) snd.beep.play();
+ }
+ if(g.status==='finished'){
+  show('view-result');
+  snd.fin.play();
+  db.ref('players').once('value',p=>{
+    let html='';
+    Object.entries(p.val()||{})
+      .sort((a,b)=>b[1]-a[1])
+      .forEach(([n,s],i)=>html+=`${i+1}. ${n} ${s}分<br>`);
+    result.innerHTML=html;
+  });
+ }
 });
 
 /* ===== Timer ===== */
-db.ref('game/timeLeft').on('value',s=>{
-    if(s.exists()) timer.innerText=s.val();
-});
+if(isHost){
+ setInterval(()=>{
+  db.ref('game/timeLeft').transaction(t=>t>0?t-1:0);
+ },1000);
+}
 
 /* ===== Submit ===== */
 function submit(ans){
-    db.ref('game').once('value',s=>{
-        const g=s.val();
-        if(g.winner)return;
-        if(ans.toUpperCase()===g.qs[g.idx].answer){
-            db.ref('game/winner').transaction(w=>{
-                if(w)return;
-                return myName;
-            },(_,ok)=>{
-                if(ok) db.ref('players/'+myName)
-                    .transaction(v=>(v||0)+10);
-            });
-        }else{
-            feedback.innerText="❌ 錯誤";
-            setTimeout(()=>feedback.innerText="",1200);
-        }
+ if(answered)return;
+ answered=true;
+ db.ref('game').once('value',s=>{
+  const g=s.val();
+  if(ans===g.qs[g.idx].answer){
+    snd.ok.play();
+    db.ref('game/winner').transaction(w=>w||myName,(_,ok)=>{
+      if(ok) db.ref('players/'+myName).transaction(v=>(v||0)+10);
     });
+  }else{
+    snd.ng.play();
+    feedback.innerText='❌ 錯誤';
+  }
+ });
 }
 </script>
 </body>
