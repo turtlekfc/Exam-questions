@@ -6,169 +6,133 @@
  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>互動搶答大賽 Pro+</title>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
 
 <style>
-:root{--primary:#6c5ce7;--accent:#fdcb6e;--danger:#ff7675;--success:#55efc4;--dark:#2d3436}
-*{-webkit-tap-highlight-color:transparent}
 body{
- margin:0;font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
- background:radial-gradient(circle,#6c5ce7,#4834d4);
- color:white;display:flex;flex-direction:column;align-items:center
-}
-.hidden{display:none!important}
-.header-container{margin:15px 0}
-.title-wrap{display:flex;align-items:center;gap:10px}
-.event-logo{height:42px}
-.event-title{
- font-size:clamp(1.3rem,6vw,2.4rem);
- font-weight:900;color:var(--accent);
- text-shadow:2px 2px #d35400
+ margin:0;
+ font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
+ background:#6c5ce7;
+ color:white;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
 }
 .card{
- background:white;color:var(--dark);
- width:90%;max-width:480px;
- padding:20px;border-radius:25px;
- box-shadow:0 15px 35px rgba(0,0,0,.3)
+ background:white;
+ color:#2d3436;
+ width:90%;
+ max-width:480px;
+ padding:20px;
+ border-radius:20px;
 }
-.opt-btn{width:100%;padding:16px;margin:6px 0;border-radius:40px;border:none}
-.host-fixed-tools{
- position:fixed;right:15px;bottom:15px;
- background:#000;color:white;
- padding:15px;border-radius:20px;
- display:flex;flex-direction:column;gap:8px;z-index:999
+.hidden{display:none}
+input,button{
+ width:100%;
+ padding:14px;
+ font-size:1.1rem;
+ margin:8px 0;
+}
+button{
+ background:#fdcb6e;
+ border:none;
+ border-radius:40px;
+ font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 
-<!-- 音效 -->
-<audio id="snd-ok" src="correct.mp3"></audio>
-<audio id="snd-ng" src="wrong.mp3"></audio>
-
-<!-- Header -->
-<div class="header-container">
- <div class="title-wrap">
-  <img src="logo.png" class="event-logo">
-  <div class="event-title">小太陽領袖營</div>
- </div>
-</div>
-
-<!-- 主持人工具 -->
-<div id="host-global-tools" class="host-fixed-tools hidden">
- <button onclick="goTo('view-admin-qs')">📚 題庫</button>
- <button onclick="hardReset()">🔄 重置</button>
-</div>
-
 <div class="card">
 
-<!-- 登入 -->
+<!-- 登入畫面 -->
 <div id="view-login">
  <h2 id="login-title"></h2>
- <input id="username">
+ <input id="login-input">
  <button id="btn-join">登入</button>
 </div>
 
+<!-- 等待 -->
+<div id="view-wait" class="hidden">
+ <h3>請等待主持人開始遊戲</h3>
+</div>
+
 <!-- 主持人設定 -->
-<div id="view-setup" class="hidden">
- <h3>主持人設定</h3>
- <input id="q-count" type="number" value="10">
- <input id="q-timer" type="number" value="15">
- <button onclick="goTo('view-instruction')">下一步</button>
-</div>
-
-<!-- 說明 -->
-<div id="view-instruction" class="hidden">
- <p>等待主持人開始…</p>
- <div id="host-start" class="hidden">
-  <button onclick="startGame()">🎮 開始遊戲</button>
- </div>
-</div>
-
-<!-- 遊戲 -->
-<div id="view-game" class="hidden">
- <div id="q-content"></div>
- <div id="options"></div>
-</div>
-
-<!-- 題庫 -->
-<div id="view-admin-qs" class="hidden">
- <h3>題庫維護</h3>
- <input id="new-q-text" placeholder="題目">
- <input id="new-q-opts" placeholder="選項 A,B,C">
- <input id="new-q-ans" placeholder="答案">
- <button onclick="addQ()">新增</button>
- <div id="qs-list"></div>
- <button onclick="goTo('view-setup')">返回</button>
+<div id="view-host" class="hidden">
+ <h3>主持人後台</h3>
+ <button id="btn-start">開始遊戲</button>
 </div>
 
 </div>
 
 <script>
-/* Firebase */
+/* ========= Firebase ========= */
 firebase.initializeApp({
  apiKey:"AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
  databaseURL:"https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app"
 });
-const db=firebase.database();
-const isHost=location.search.includes('host=true');
-let myName="";
+const db = firebase.database();
 
-/* 登入畫面初始化 */
-if(isHost){
- login-title.innerText="🔑 主持人登入";
- username.placeholder="請輸入主持人密碼";
-}else{
- login-title.innerText="請輸入隊伍名稱";
- username.placeholder="隊伍 / 姓名";
-}
+/* ========= DOM ========= */
+const loginTitle = document.getElementById('login-title');
+const loginInput = document.getElementById('login-input');
+const btnJoin    = document.getElementById('btn-join');
 
-/* 畫面切換 */
-function goTo(id){
- document.querySelectorAll('.card>div').forEach(d=>d.classList.add('hidden'));
- document.getElementById(id).classList.remove('hidden');
-}
+const viewLogin = document.getElementById('view-login');
+const viewWait  = document.getElementById('view-wait');
+const viewHost  = document.getElementById('view-host');
 
-/* 登入 */
-btn-join.onclick=()=>{
- const v=username.value.trim();
- if(!v)return;
+/* ========= State ========= */
+const isHost = window.location.search.includes('host=true');
+let myName = "";
+
+/* ========= Init Login UI ========= */
+function initLoginUI(){
  if(isHost){
-  db.ref('adminPass').once('value',s=>{
-   if(v===s.val()){
-    myName="管理員";
-    host-global-tools.classList.remove('hidden');
-    document.getElementById('host-start').classList.remove('hidden');
-    goTo('view-setup');
-   }else alert("密碼錯誤");
-  });
+   loginTitle.innerText = "🔑 主持人登入";
+   loginInput.placeholder = "請輸入主持人密碼";
  }else{
-  myName=v;
-  goTo('view-instruction');
+   loginTitle.innerText = "請輸入隊伍名稱";
+   loginInput.placeholder = "隊伍 / 姓名";
  }
+}
+initLoginUI();
+
+/* ========= View Switch ========= */
+function show(view){
+ [viewLogin,viewWait,viewHost].forEach(v=>v.classList.add('hidden'));
+ view.classList.remove('hidden');
+}
+
+/* ========= Login ========= */
+btnJoin.addEventListener('click', ()=>{
+ const val = loginInput.value.trim();
+ if(!val) return alert("不可空白");
+
+ if(isHost){
+   // 主持人
+   db.ref('adminPass').once('value', snap=>{
+     if(val === snap.val()){
+       myName = "管理員";
+       show(viewHost);
+     }else{
+       alert("主持人密碼錯誤");
+     }
+   });
+ }else{
+   // 玩家
+   myName = val;
+   show(viewWait);
+ }
+});
+
+/* ========= Host Start ========= */
+document.getElementById('btn-start').onclick = ()=>{
+ alert("主持人已登入，可接續遊戲流程");
 };
-
-/* 題庫 */
-function addQ(){
- db.ref('questions').push({
-  type:'choice',
-  question:new-q-text.value,
-  options:new-q-opts.value,
-  answer:new-q-ans.value
- });
-}
-
-/* 重置 */
-function hardReset(){
- if(confirm("確定重置？")){
-  db.ref('game').remove();
-  db.ref('players').remove();
-  location.reload();
- }
-}
 </script>
+
 </body>
 </html>
