@@ -1,308 +1,168 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>小太陽領袖營 - 互動搶答大賽</title>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    <style>
-        :root { --primary: #6c5ce7; --accent: #fdcb6e; --danger: #ff7675; --success: #55efc4; --dark: #2d3436; --sun: #f39c12; }
-        body { margin: 0; font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif; background: radial-gradient(circle, #ff9f43 0%, #ee5253 100%); color: white; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 10px 0; }
-        
-        .header-container { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 25px; width: 100%; text-align: center; }
-        .event-logo { width: 120px; height: 120px; object-fit: contain; background: white; border-radius: 50%; padding: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-        .main-title { font-size: 2.8rem; font-weight: 900; color: #fff; text-shadow: 4px 4px 0px var(--sun); margin: 10px 0; }
+<meta charset="UTF-8">
+<meta name="viewport"
+ content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>互動搶答大賽 Pro+</title>
 
-        .card { background: white; color: var(--dark); width: 88%; max-width: 450px; padding: 25px; border-radius: 25px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.3); position: relative; }
-        .hidden { display: none !important; }
-        
-        input, select { width: 90%; padding: 14px; font-size: 1.1rem; margin: 8px 0; border: 2px solid #dfe6e9; border-radius: 12px; text-align: center; }
-        button { width: 95%; padding: 14px; font-size: 1.1rem; margin: 8px 0; background: var(--accent); color: #d35400; border: none; border-radius: 40px; font-weight: bold; cursor: pointer; box-shadow: 0 5px 0 #e67e22; }
-        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #e67e22; }
-        
-        .instruction-box { text-align: left; background: #fff9e6; padding: 15px; border-radius: 12px; margin-bottom: 15px; font-size: 1rem; line-height: 1.6; color: #636e72; border: 1px dashed var(--sun); }
-        .q-box { font-size: 1.5rem; margin: 15px 0; padding: 20px; background: #f1f2f6; border-radius: 15px; font-weight: bold; min-height: 80px; display: flex; align-items: center; justify-content: center; }
-        .timer-badge { font-size: 3.2rem; color: var(--danger); font-weight: bold; margin: 5px 0; }
-        .opt-btn { background: #f8f9fa; color: var(--dark); box-shadow: 0 4px 0 #ced4da; margin: 8px 0; }
-        
-        .host-tools { position: fixed; bottom: 15px; right: 15px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
-        .btn-sm { font-size: 0.8rem; padding: 10px; width: 110px; background: #2d3436; color: white; border-radius: 10px; box-shadow: 0 3px 0 #000; }
-    </style>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+
+<style>
+body{
+ margin:0;
+ font-family:'PingFang TC','Microsoft JhengHei',sans-serif;
+ background:#6c5ce7;
+ color:white;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+}
+.card{
+ background:white;
+ color:#2d3436;
+ width:90%;
+ max-width:480px;
+ padding:20px;
+ border-radius:20px;
+ text-align:center;
+}
+.hidden{display:none}
+input,button{
+ width:100%;
+ padding:14px;
+ font-size:1.1rem;
+ margin:8px 0;
+}
+button{
+ background:#fdcb6e;
+ border:none;
+ border-radius:40px;
+ font-weight:bold;
+ cursor:pointer;
+}
+.qrcode{
+ margin:16px 0;
+}
+.qrcode img{
+ width:200px;
+ max-width:100%;
+}
+</style>
 </head>
+
 <body>
 
-<div class="header-container">
-    <img src="logo.png" alt="LOGO" class="event-logo" onerror="this.style.display='none'">
-    <h1 class="main-title">☀️ 小太陽領袖營</h1>
-</div>
-
 <div class="card">
-    <div id="view-login">
-        <h2 id="login-title">準備好搶答了嗎？</h2>
-        <input id="login-input" placeholder="請輸入隊伍名稱">
-        <button id="btn-join">下一頁 ➔</button>
-    </div>
 
-    <div id="view-setup" class="hidden">
-        <h3 style="color:var(--sun)">⚙️ 遊戲設定</h3>
-        <p>抽取題數：<input type="number" id="q-count" value="10"></p>
-        <p>每題秒數：<input type="number" id="q-timer" value="15"></p>
-        <button id="btn-to-instruction">前往說明頁</button>
-    </div>
-
-    <div id="view-instruction" class="hidden">
-        <h3 style="color:var(--sun)">📖 遊戲規則</h3>
-        <div class="instruction-box">
-            ☀️ 採「<b>全體搶答</b>」，先答對者獲勝。<br>
-            ☀️ 答錯會震動並失去該題機會。<br>
-            ☀️ 倒數最後三秒請注意警示音！
-        </div>
-        <img id="qr-display" src="" alt="QR" style="width:150px; margin:10px auto; display:block;" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(window.location.href.split('?')[0])">
-        <div id="host-start-area" class="hidden">
-            <button id="btn-real-start" style="background:var(--success); color:#006266;">🎮 開始遊戲</button>
-        </div>
-        <p id="wait-msg">⌛ 等待主持人啟動遊戲...</p>
-    </div>
-
-    <div id="view-game" class="hidden">
-        <div id="q-header" style="font-size:0.9rem; color:#636e72;"></div>
-        <div id="timer-display" class="timer-badge">--</div>
-        <div id="q-content" class="q-box"></div>
-        <div id="player-zone" class="hidden"><div id="options-area"></div><p id="feedback" style="min-height:1.2em; font-weight:bold;"></p></div>
-        <div id="win-notification" class="hidden"><div style="background:var(--success); color:#006266; padding:15px; border-radius:15px; font-weight:bold;">🎉 <span id="win-player-name"></span> 搶答成功！</div></div>
-        <div id="ans-reveal" class="hidden" style="background:#fff3cd; padding:15px; border-radius:20px; margin-top:10px; border:1px solid #ffeeba;"><h3 style="margin:0;">正解：<span id="correct-ans"></span></h3></div>
-        <div id="host-actions" class="hidden"><button id="btn-reveal">揭曉答案</button><button id="btn-next" class="hidden">下一題 ➔</button></div>
-    </div>
-
-    <div id="view-result" class="hidden">
-        <h2 style="color:var(--sun)">🏆 榮譽排行榜</h2>
-        <table style="width:100%; border-collapse: collapse;"><tbody id="leaderboard-body"></tbody></table>
-        <div id="host-reset-area" class="hidden"><button id="btn-finish-reset" style="background:#bdc3c7; color:white; margin-top:20px;">🔄 結束並重置</button></div>
-    </div>
-
-    <div id="view-admin-qs" class="hidden">
-        <h3 style="color:var(--primary)">📚 題庫維護</h3>
-        <select id="new-q-type"><option value="choice">選擇題</option><option value="tf">是非題</option></select>
-        <input id="new-q-text" placeholder="題目內容">
-        <input id="new-q-opts" placeholder="選項 (如 A:是,B:否 或 O,X)">
-        <input id="new-q-ans" placeholder="答案 (A 或 O)">
-        <button id="btn-add-q">新增</button>
-        <div id="qs-list" style="max-height:150px; overflow-y:auto; text-align:left; margin:10px 0; font-size:0.85rem; background:#f8f9fa; padding:10px;"></div>
-        <button id="btn-back-game" style="background:var(--dark); color:white;">返回</button>
-    </div>
+<!-- 登入 -->
+<div id="view-login">
+ <h2 id="login-title"></h2>
+ <input id="login-input">
+ <button id="btn-join">登入</button>
 </div>
 
-<div id="host-global-tools" class="host-tools hidden">
-    <button id="btn-admin-qs-link" class="btn-sm">題庫管理</button>
-    <button id="btn-hard-reset" class="btn-sm" style="background:var(--danger); color:white;">全面重置</button>
+<!-- 學員等待 -->
+<div id="view-wait" class="hidden">
+ <h3>請等待主持人開始遊戲</h3>
+</div>
+
+<!-- 主持人 -->
+<div id="view-host" class="hidden">
+ <h3>主持人後台</h3>
+ <p>📢 請學員掃描下方 QR Code 進入遊戲</p>
+
+ <div class="qrcode">
+   <img src="QRCODE.png" alt="學員登入 QR Code">
+ </div>
+
+ <button id="btn-start">開始遊戲</button>
+</div>
+
+<!-- 遊戲開始畫面（示意） -->
+<div id="view-game" class="hidden">
+ <h2>🎮 遊戲開始！</h2>
+</div>
+
 </div>
 
 <script>
-/* ========= 音效定義 ========= */
-const soundCorrect = new Audio('correct.mp3');
-const soundWrong = new Audio('wrong.mp3');
-const soundBeep = new Audio('beep.mp3');
-
-function unlockAudio() {
-    [soundCorrect, soundWrong, soundBeep].forEach(s => { s.play().then(()=> {s.pause(); s.currentTime=0;}).catch(()=>{}); });
-}
-
-/* ========= Firebase Config ========= */
-const firebaseConfig = {
-    apiKey: "AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
-    authDomain: "exam-questions-1eb01.firebaseapp.com",
-    databaseURL: "https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "exam-questions-1eb01",
-    storageBucket: "exam-questions-1eb01.firebasestorage.app",
-    messagingSenderId: "826696852167",
-    appId: "1:826696852167:web:3001addfd34e8d91d714e2"
-};
-firebase.initializeApp(firebaseConfig);
+/* ========= Firebase 設定 ========= */
+firebase.initializeApp({
+ apiKey: "AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
+ databaseURL: "https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
 const db = firebase.database();
+const gameStatusRef = db.ref("gameStatus");
 
-/* ========= 核心狀態控制 ========= */
-const isHost = window.location.search.includes('host=true');
-let myName = "";
-let localQuestions = [];
-let timerInterval = null;
-
+/* ========= DOM ========= */
 const loginTitle = document.getElementById('login-title');
 const loginInput = document.getElementById('login-input');
+const btnJoin    = document.getElementById('btn-join');
+const btnStart   = document.getElementById('btn-start');
 
-// 根據權限初始化 UI
-if(isHost) {
-    loginTitle.innerText = "🔑 管理員登入";
-    loginInput.placeholder = "請輸入主持人密碼";
-    loginInput.type = "password";
+const viewLogin = document.getElementById('view-login');
+const viewWait  = document.getElementById('view-wait');
+const viewHost  = document.getElementById('view-host');
+const viewGame  = document.getElementById('view-game');
+
+/* ========= State ========= */
+const isHost = window.location.search.includes('host=true');
+const HOST_PASSWORD = "00000";
+
+/* ========= Init ========= */
+function initLoginUI(){
+ if(isHost){
+   loginTitle.innerText = "🔑 主持人登入";
+   loginInput.placeholder = "請輸入主持人密碼";
+   loginInput.type = "password";
+ }else{
+   loginTitle.innerText = "請輸入隊伍名稱";
+   loginInput.placeholder = "隊伍 / 姓名";
+ }
+}
+initLoginUI();
+
+/* ========= View Switch ========= */
+function show(view){
+ [viewLogin, viewWait, viewHost, viewGame].forEach(v =>
+   v.classList.add('hidden')
+ );
+ view.classList.remove('hidden');
 }
 
-function show(id) {
-    document.querySelectorAll('.card > div').forEach(v => v.classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
-}
+/* ========= Login ========= */
+btnJoin.onclick = ()=>{
+ const val = loginInput.value.trim();
+ if(!val) return alert("不可空白");
 
-// 登入按鈕
-document.getElementById('btn-join').onclick = () => {
-    unlockAudio();
-    const val = loginInput.value.trim();
-    if(!val) return alert("不可空白");
-
-    if(isHost) {
-        if(val === "00000") {
-            myName = "管理員";
-            show('view-setup');
-            document.getElementById('host-global-tools').classList.remove('hidden');
-        } else {
-            alert("主持人密碼錯誤");
-        }
-    } else {
-        myName = val;
-        show('view-instruction');
-    }
+ if(isHost){
+   if(val === HOST_PASSWORD){
+     show(viewHost);
+     gameStatusRef.set("waiting"); // 重置狀態
+   }else{
+     alert("主持人密碼錯誤");
+   }
+ }else{
+   show(viewWait);
+ }
 };
 
-/* ========= 遊戲邏輯 ========= */
+/* ========= Host Start Game ========= */
+btnStart.onclick = ()=>{
+ gameStatusRef.set("playing");
+};
 
-function submitAns(ans) {
-    db.ref('game').once('value', snap => {
-        const g = snap.val();
-        if(!g || g.winner || g.timeLeft <= 0) return;
-        const correct = g.qs[g.idx].answer.trim().toUpperCase();
-        if(ans.trim().toUpperCase() === correct){
-            soundCorrect.play();
-            db.ref('game/winner').set(myName);
-            db.ref('players/' + myName).transaction(s => (s || 0) + 10);
-        } else {
-            soundWrong.play();
-            if (navigator.vibrate) navigator.vibrate(200); // 答錯震動
-            document.getElementById('feedback').innerText = "❌ 答錯了！";
-            setTimeout(()=> document.getElementById('feedback').innerText="", 1000);
-        }
-    });
-}
-
-// 監聽同步
-db.ref('game').on('value', snap => {
-    const g = snap.val();
-    if(!g) return;
-
-    if(g.status === 'playing') {
-        show('view-game');
-        const cur = g.qs[g.idx];
-        document.getElementById('q-content').innerText = cur.question;
-        document.getElementById('timer-display').innerText = g.timeLeft;
-        
-        // 倒數音效
-        if (g.timeLeft > 0 && g.timeLeft <= 3 && !g.winner) soundBeep.play();
-
-        const area = document.getElementById('options-area');
-        area.innerHTML = "";
-        cur.options.split(',').forEach(o => {
-            const btn = document.createElement('button');
-            btn.className = "opt-btn";
-            btn.innerText = o;
-            btn.onclick = () => submitAns(o.includes(':') ? o.split(':')[0] : o);
-            area.appendChild(btn);
-        });
-
-        if(g.winner) {
-            clearInterval(timerInterval); timerInterval = null;
-            document.getElementById('player-zone').classList.add('hidden');
-            document.getElementById('win-notification').classList.remove('hidden');
-            document.getElementById('win-player-name').innerText = g.winner;
-            if(isHost) {
-                document.getElementById('host-actions').classList.remove('hidden');
-                document.getElementById('btn-next').classList.toggle('hidden', !g.show);
-            }
-            if(g.show) {
-                document.getElementById('ans-reveal').classList.remove('hidden');
-                document.getElementById('correct-ans').innerText = cur.answer;
-            }
-        } else if(g.timeLeft <= 0) {
-            clearInterval(timerInterval); timerInterval = null;
-            document.getElementById('player-zone').classList.add('hidden');
-            document.getElementById('q-content').innerText = "⌛ 時間到！";
-            if(isHost) document.getElementById('host-actions').classList.remove('hidden');
-            if(g.show) {
-                document.getElementById('ans-reveal').classList.remove('hidden');
-                document.getElementById('correct-ans').innerText = cur.answer;
-            }
-        } else {
-            if(!isHost) document.getElementById('player-zone').classList.remove('hidden');
-            document.getElementById('win-notification').classList.add('hidden');
-            document.getElementById('ans-reveal').classList.add('hidden');
-            document.getElementById('host-actions').classList.add('hidden');
-        }
-
-        if(isHost && !g.winner && g.timeLeft > 0 && !timerInterval) {
-            timerInterval = setInterval(() => {
-                db.ref('game/timeLeft').transaction(t => (t > 0 ? t - 1 : 0));
-            }, 1000);
-        }
-    } else if(g.status === 'finished') {
-        show('view-result');
-        if(isHost) document.getElementById('host-reset-area').classList.remove('hidden');
-        db.ref('players').once('value', pSnap => {
-            const ps = pSnap.val() || {};
-            let list = Object.keys(ps).map(k => ({n:k, s:ps[k]})).sort((a,b)=>b.s-a.s);
-            document.getElementById('leaderboard-body').innerHTML = list.map((p,i)=>
-                `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px">${i+1}</td><td>${p.n}</td><td>${p.s}分</td></tr>`
-            ).join('');
-        });
-    }
+/* ========= Firebase 即時監聽 ========= */
+gameStatusRef.on("value", snap=>{
+ const status = snap.val();
+ if(status === "playing"){
+   show(viewGame);
+ }
 });
-
-/* ========= 管理控制功能 ========= */
-document.getElementById('btn-to-instruction').onclick = () => {
-    show('view-instruction');
-    if(isHost) {
-        document.getElementById('host-start-area').classList.remove('hidden');
-        document.getElementById('wait-msg').classList.add('hidden');
-    }
-};
-
-document.getElementById('btn-real-start').onclick = () => {
-    db.ref('questions').once('value', s => {
-        const all = Object.values(s.val() || {});
-        if(all.length === 0) return alert("題庫沒題目");
-        const count = parseInt(document.getElementById('q-count').value);
-        const timer = parseInt(document.getElementById('q-timer').value);
-        db.ref('game').set({ status: 'playing', qs: all.slice(0, count), idx: 0, winner: "", show: false, timeLeft: timer, maxTime: timer });
-    });
-};
-
-document.getElementById('btn-reveal').onclick = () => db.ref('game/show').set(true);
-document.getElementById('btn-next').onclick = () => {
-    db.ref('game').once('value', snap => {
-        const g = snap.val();
-        if(g.idx + 1 < g.qs.length) db.ref('game').update({ idx: g.idx + 1, winner: "", show: false, timeLeft: g.maxTime });
-        else db.ref('game/status').set('finished');
-    });
-};
-
-document.getElementById('btn-admin-qs-link').onclick = () => show('view-admin-qs');
-document.getElementById('btn-back-game').onclick = () => location.reload();
-document.getElementById('btn-add-q').onclick = () => {
-    const type = document.getElementById('new-q-type').value;
-    const question = document.getElementById('new-q-text').value;
-    const options = document.getElementById('new-q-opts').value;
-    const answer = document.getElementById('new-q-ans').value;
-    if(question && answer) {
-        db.ref('questions').push({type, question, options, answer});
-        alert("新增成功");
-    }
-};
-
-db.ref('questions').on('value', snap => {
-    let html = "";
-    for(let id in snap.val()) { html += `<div>• ${snap.val()[id].question}</div>`; }
-    document.getElementById('qs-list').innerHTML = html;
-});
-
-document.getElementById('btn-hard-reset').onclick = () => { if(confirm("確定全面重置？")) { db.ref('game').remove(); db.ref('players').remove(); location.reload(); } };
-document.getElementById('btn-finish-reset').onclick = () => { db.ref('game').remove(); db.ref('players').remove(); location.reload(); };
-
 </script>
+
 </body>
 </html>
