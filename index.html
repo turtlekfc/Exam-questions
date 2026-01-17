@@ -6,9 +6,6 @@
  content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>互動搶答大賽 Pro+</title>
 
-<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-
 <style>
 body{
  margin:0;
@@ -26,6 +23,7 @@ body{
  max-width:480px;
  padding:20px;
  border-radius:20px;
+ text-align:center;
 }
 .hidden{display:none}
 input,button{
@@ -39,6 +37,19 @@ button{
  border:none;
  border-radius:40px;
  font-weight:bold;
+ cursor:pointer;
+}
+.qrcode{
+ margin-top:16px;
+}
+.qrcode img{
+ width:200px;
+ max-width:100%;
+}
+.qrcode p{
+ margin-top:8px;
+ font-size:0.95rem;
+ color:#636e72;
 }
 </style>
 </head>
@@ -54,12 +65,18 @@ button{
  <button id="btn-join">登入</button>
 </div>
 
-<!-- 等待 -->
+<!-- 等待畫面 -->
 <div id="view-wait" class="hidden">
  <h3>請等待主持人開始遊戲</h3>
+
+ <!-- QR CODE 區 -->
+ <div class="qrcode">
+   <img src="QRCODE.png" alt="學員登入 QR Code">
+   <p>📱 學員請掃描 QR Code 登入</p>
+ </div>
 </div>
 
-<!-- 主持人設定 -->
+<!-- 主持人後台 -->
 <div id="view-host" class="hidden">
  <h3>主持人後台</h3>
  <button id="btn-start">開始遊戲</button>
@@ -68,13 +85,6 @@ button{
 </div>
 
 <script>
-/* ========= Firebase ========= */
-firebase.initializeApp({
- apiKey:"AIzaSyAMvRegqD33yBy6mcCl3sB9IK8efeECxHk",
- databaseURL:"https://exam-questions-1eb01-default-rtdb.asia-southeast1.firebasedatabase.app"
-});
-const db = firebase.database();
-
 /* ========= DOM ========= */
 const loginTitle = document.getElementById('login-title');
 const loginInput = document.getElementById('login-input');
@@ -86,6 +96,7 @@ const viewHost  = document.getElementById('view-host');
 
 /* ========= State ========= */
 const isHost = window.location.search.includes('host=true');
+const HOST_PASSWORD = "00000";
 let myName = "";
 
 /* ========= Init Login UI ========= */
@@ -93,6 +104,7 @@ function initLoginUI(){
  if(isHost){
    loginTitle.innerText = "🔑 主持人登入";
    loginInput.placeholder = "請輸入主持人密碼";
+   loginInput.type = "password";
  }else{
    loginTitle.innerText = "請輸入隊伍名稱";
    loginInput.placeholder = "隊伍 / 姓名";
@@ -112,15 +124,13 @@ btnJoin.addEventListener('click', ()=>{
  if(!val) return alert("不可空白");
 
  if(isHost){
-   // 主持人
-   db.ref('adminPass').once('value', snap=>{
-     if(val === snap.val()){
-       myName = "管理員";
-       show(viewHost);
-     }else{
-       alert("主持人密碼錯誤");
-     }
-   });
+   // 主持人驗證
+   if(val === HOST_PASSWORD){
+     myName = "管理員";
+     show(viewHost);
+   }else{
+     alert("主持人密碼錯誤");
+   }
  }else{
    // 玩家
    myName = val;
