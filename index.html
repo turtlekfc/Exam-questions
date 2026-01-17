@@ -27,7 +27,7 @@
         .opt-btn { background: #f8f9fa; color: var(--dark); box-shadow: 0 4px 0 #ced4da; margin: 8px 0; }
         
         .host-tools { position: fixed; bottom: 15px; right: 15px; display: flex; flex-direction: column; gap: 8px; z-index: 1000; }
-        .btn-sm { font-size: 0.8rem; padding: 10px; width: 110px; background: #2d3436; color: white; }
+        .btn-sm { font-size: 0.8rem; padding: 10px; width: 110px; background: #2d3436; color: white; border-radius: 10px; box-shadow: 0 3px 0 #000; }
     </style>
 </head>
 <body>
@@ -39,8 +39,8 @@
 
 <div class="card">
     <div id="view-login">
-        <h2 id="login-title" style="color:var(--sun)">準備好搶答了嗎？</h2>
-        <input id="login-input">
+        <h2 id="login-title">準備好搶答了嗎？</h2>
+        <input id="login-input" placeholder="請輸入隊伍名稱">
         <button id="btn-join">下一頁 ➔</button>
     </div>
 
@@ -69,7 +69,7 @@
         <div id="q-header" style="font-size:0.9rem; color:#636e72;"></div>
         <div id="timer-display" class="timer-badge">--</div>
         <div id="q-content" class="q-box"></div>
-        <div id="player-zone" class="hidden"><div id="options-area"></div></div>
+        <div id="player-zone" class="hidden"><div id="options-area"></div><p id="feedback" style="min-height:1.2em; font-weight:bold;"></p></div>
         <div id="win-notification" class="hidden"><div style="background:var(--success); color:#006266; padding:15px; border-radius:15px; font-weight:bold;">🎉 <span id="win-player-name"></span> 搶答成功！</div></div>
         <div id="ans-reveal" class="hidden" style="background:#fff3cd; padding:15px; border-radius:20px; margin-top:10px; border:1px solid #ffeeba;"><h3 style="margin:0;">正解：<span id="correct-ans"></span></h3></div>
         <div id="host-actions" class="hidden"><button id="btn-reveal">揭曉答案</button><button id="btn-next" class="hidden">下一題 ➔</button></div>
@@ -77,20 +77,26 @@
 
     <div id="view-result" class="hidden">
         <h2 style="color:var(--sun)">🏆 榮譽排行榜</h2>
-        <table style="width:100%;"><tbody id="leaderboard-body"></tbody></table>
-        <div id="host-reset-area" class="hidden"><button id="btn-finish-reset">🔄 結束並重置</button></div>
+        <table style="width:100%; border-collapse: collapse;"><tbody id="leaderboard-body"></tbody></table>
+        <div id="host-reset-area" class="hidden"><button id="btn-finish-reset" style="background:#bdc3c7; color:white; margin-top:20px;">🔄 結束並重置</button></div>
     </div>
 
     <div id="view-admin-qs" class="hidden">
-        <h3>📚 題庫維護</h3>
+        <h3 style="color:var(--primary)">📚 題庫維護</h3>
+        <select id="new-q-type"><option value="choice">選擇題</option><option value="tf">是非題</option></select>
         <input id="new-q-text" placeholder="題目內容">
+        <input id="new-q-opts" placeholder="選項 (如 A:是,B:否 或 O,X)">
         <input id="new-q-ans" placeholder="答案 (A 或 O)">
         <button id="btn-add-q">新增</button>
-        <button id="btn-back-game">返回</button>
+        <div id="qs-list" style="max-height:150px; overflow-y:auto; text-align:left; margin:10px 0; font-size:0.85rem; background:#f8f9fa; padding:10px;"></div>
+        <button id="btn-back-game" style="background:var(--dark); color:white;">返回</button>
     </div>
 </div>
 
-<div id="host-global-tools" class="host-tools hidden"><button id="btn-admin-qs-link" class="btn-sm">題庫管理</button></div>
+<div id="host-global-tools" class="host-tools hidden">
+    <button id="btn-admin-qs-link" class="btn-sm">題庫管理</button>
+    <button id="btn-hard-reset" class="btn-sm" style="background:var(--danger); color:white;">全面重置</button>
+</div>
 
 <script>
 /* ========= 音效定義 ========= */
@@ -98,11 +104,8 @@ const soundCorrect = new Audio('correct.mp3');
 const soundWrong = new Audio('wrong.mp3');
 const soundBeep = new Audio('beep.mp3');
 
-// 預載入並解鎖音效 (由於瀏覽器限制，必須在使用者點擊按鈕時執行)
 function unlockAudio() {
-    [soundCorrect, soundWrong, soundBeep].forEach(sound => {
-        sound.play().then(() => { sound.pause(); sound.currentTime = 0; }).catch(() => {});
-    });
+    [soundCorrect, soundWrong, soundBeep].forEach(s => { s.play().then(()=> {s.pause(); s.currentTime=0;}).catch(()=>{}); });
 }
 
 /* ========= Firebase Config ========= */
@@ -118,46 +121,68 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* ========= 核心邏輯 ========= */
+/* ========= 核心狀態控制 ========= */
 const isHost = window.location.search.includes('host=true');
 let myName = "";
 let localQuestions = [];
 let timerInterval = null;
+
+const loginTitle = document.getElementById('login-title');
+const loginInput = document.getElementById('login-input');
+
+// 根據權限初始化 UI
+if(isHost) {
+    loginTitle.innerText = "🔑 管理員登入";
+    loginInput.placeholder = "請輸入主持人密碼";
+    loginInput.type = "password";
+}
 
 function show(id) {
     document.querySelectorAll('.card > div').forEach(v => v.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
 }
 
-// 登入
+// 登入按鈕
 document.getElementById('btn-join').onclick = () => {
-    unlockAudio(); // 解鎖音效播放
-    const val = document.getElementById('login-input').value.trim();
-    if(!val) return;
+    unlockAudio();
+    const val = loginInput.value.trim();
+    if(!val) return alert("不可空白");
+
     if(isHost) {
-        if(val === "00000") { myName = "管理員"; show('view-setup'); document.getElementById('host-global-tools').classList.remove('hidden'); }
+        if(val === "00000") {
+            myName = "管理員";
+            show('view-setup');
+            document.getElementById('host-global-tools').classList.remove('hidden');
+        } else {
+            alert("主持人密碼錯誤");
+        }
     } else {
-        myName = val; show('view-instruction');
+        myName = val;
+        show('view-instruction');
     }
 };
 
-// 搶答答題
+/* ========= 遊戲邏輯 ========= */
+
 function submitAns(ans) {
     db.ref('game').once('value', snap => {
         const g = snap.val();
         if(!g || g.winner || g.timeLeft <= 0) return;
-        if(ans.trim().toUpperCase() === g.qs[g.idx].answer.trim().toUpperCase()){
+        const correct = g.qs[g.idx].answer.trim().toUpperCase();
+        if(ans.trim().toUpperCase() === correct){
             soundCorrect.play();
             db.ref('game/winner').set(myName);
             db.ref('players/' + myName).transaction(s => (s || 0) + 10);
         } else {
             soundWrong.play();
-            if (navigator.vibrate) navigator.vibrate(200); // 答錯震動 200ms
+            if (navigator.vibrate) navigator.vibrate(200); // 答錯震動
+            document.getElementById('feedback').innerText = "❌ 答錯了！";
+            setTimeout(()=> document.getElementById('feedback').innerText="", 1000);
         }
     });
 }
 
-// 監聽遊戲與計時
+// 監聽同步
 db.ref('game').on('value', snap => {
     const g = snap.val();
     if(!g) return;
@@ -168,10 +193,8 @@ db.ref('game').on('value', snap => {
         document.getElementById('q-content').innerText = cur.question;
         document.getElementById('timer-display').innerText = g.timeLeft;
         
-        // 倒數音效：3, 2, 1 秒時嗶一聲
-        if (g.timeLeft > 0 && g.timeLeft <= 3 && !g.winner) {
-            soundBeep.play();
-        }
+        // 倒數音效
+        if (g.timeLeft > 0 && g.timeLeft <= 3 && !g.winner) soundBeep.play();
 
         const area = document.getElementById('options-area');
         area.innerHTML = "";
@@ -201,6 +224,10 @@ db.ref('game').on('value', snap => {
             document.getElementById('player-zone').classList.add('hidden');
             document.getElementById('q-content').innerText = "⌛ 時間到！";
             if(isHost) document.getElementById('host-actions').classList.remove('hidden');
+            if(g.show) {
+                document.getElementById('ans-reveal').classList.remove('hidden');
+                document.getElementById('correct-ans').innerText = cur.answer;
+            }
         } else {
             if(!isHost) document.getElementById('player-zone').classList.remove('hidden');
             document.getElementById('win-notification').classList.add('hidden');
@@ -208,7 +235,6 @@ db.ref('game').on('value', snap => {
             document.getElementById('host-actions').classList.add('hidden');
         }
 
-        // 主持人端倒數計時
         if(isHost && !g.winner && g.timeLeft > 0 && !timerInterval) {
             timerInterval = setInterval(() => {
                 db.ref('game/timeLeft').transaction(t => (t > 0 ? t - 1 : 0));
@@ -220,21 +246,32 @@ db.ref('game').on('value', snap => {
         db.ref('players').once('value', pSnap => {
             const ps = pSnap.val() || {};
             let list = Object.keys(ps).map(k => ({n:k, s:ps[k]})).sort((a,b)=>b.s-a.s);
-            document.getElementById('leaderboard-body').innerHTML = list.map((p,i)=>`<tr><td>${i+1}</td><td>${p.n}</td><td>${p.s}分</td></tr>`).join('');
+            document.getElementById('leaderboard-body').innerHTML = list.map((p,i)=>
+                `<tr style="border-bottom:1px solid #eee;"><td style="padding:10px">${i+1}</td><td>${p.n}</td><td>${p.s}分</td></tr>`
+            ).join('');
         });
     }
 });
 
-/* 主持人其它控制 (開始、下一題、重置等) 比照前版本，略... */
-document.getElementById('btn-to-instruction').onclick = () => { show('view-instruction'); if(isHost) document.getElementById('host-start-area').classList.remove('hidden'); };
+/* ========= 管理控制功能 ========= */
+document.getElementById('btn-to-instruction').onclick = () => {
+    show('view-instruction');
+    if(isHost) {
+        document.getElementById('host-start-area').classList.remove('hidden');
+        document.getElementById('wait-msg').classList.add('hidden');
+    }
+};
+
 document.getElementById('btn-real-start').onclick = () => {
     db.ref('questions').once('value', s => {
-        const qs = Object.values(s.val());
+        const all = Object.values(s.val() || {});
+        if(all.length === 0) return alert("題庫沒題目");
         const count = parseInt(document.getElementById('q-count').value);
         const timer = parseInt(document.getElementById('q-timer').value);
-        db.ref('game').set({ status: 'playing', qs: qs.slice(0, count), idx: 0, winner: "", show: false, timeLeft: timer, maxTime: timer });
+        db.ref('game').set({ status: 'playing', qs: all.slice(0, count), idx: 0, winner: "", show: false, timeLeft: timer, maxTime: timer });
     });
 };
+
 document.getElementById('btn-reveal').onclick = () => db.ref('game/show').set(true);
 document.getElementById('btn-next').onclick = () => {
     db.ref('game').once('value', snap => {
@@ -243,7 +280,29 @@ document.getElementById('btn-next').onclick = () => {
         else db.ref('game/status').set('finished');
     });
 };
+
+document.getElementById('btn-admin-qs-link').onclick = () => show('view-admin-qs');
+document.getElementById('btn-back-game').onclick = () => location.reload();
+document.getElementById('btn-add-q').onclick = () => {
+    const type = document.getElementById('new-q-type').value;
+    const question = document.getElementById('new-q-text').value;
+    const options = document.getElementById('new-q-opts').value;
+    const answer = document.getElementById('new-q-ans').value;
+    if(question && answer) {
+        db.ref('questions').push({type, question, options, answer});
+        alert("新增成功");
+    }
+};
+
+db.ref('questions').on('value', snap => {
+    let html = "";
+    for(let id in snap.val()) { html += `<div>• ${snap.val()[id].question}</div>`; }
+    document.getElementById('qs-list').innerHTML = html;
+});
+
+document.getElementById('btn-hard-reset').onclick = () => { if(confirm("確定全面重置？")) { db.ref('game').remove(); db.ref('players').remove(); location.reload(); } };
 document.getElementById('btn-finish-reset').onclick = () => { db.ref('game').remove(); db.ref('players').remove(); location.reload(); };
+
 </script>
 </body>
 </html>
