@@ -40,16 +40,11 @@ button{
  cursor:pointer;
 }
 .qrcode{
- margin-top:16px;
+ margin:16px 0;
 }
 .qrcode img{
  width:200px;
  max-width:100%;
-}
-.qrcode p{
- margin-top:8px;
- font-size:0.95rem;
- color:#636e72;
 }
 </style>
 </head>
@@ -65,20 +60,20 @@ button{
  <button id="btn-join">登入</button>
 </div>
 
-<!-- 等待畫面 -->
+<!-- 學員等待畫面 -->
 <div id="view-wait" class="hidden">
  <h3>請等待主持人開始遊戲</h3>
-
- <!-- QR CODE 區 -->
- <div class="qrcode">
-   <img src="QRCODE.png" alt="學員登入 QR Code">
-   <p>📱 學員請掃描 QR Code 登入</p>
- </div>
 </div>
 
 <!-- 主持人後台 -->
 <div id="view-host" class="hidden">
  <h3>主持人後台</h3>
+ <p>📢 請學員掃描下方 QR Code 進入遊戲</p>
+
+ <div class="qrcode">
+   <img src="QRCODE.png" alt="學員登入 QR Code">
+ </div>
+
  <button id="btn-start">開始遊戲</button>
 </div>
 
@@ -89,6 +84,7 @@ button{
 const loginTitle = document.getElementById('login-title');
 const loginInput = document.getElementById('login-input');
 const btnJoin    = document.getElementById('btn-join');
+const btnStart   = document.getElementById('btn-start');
 
 const viewLogin = document.getElementById('view-login');
 const viewWait  = document.getElementById('view-wait');
@@ -114,7 +110,7 @@ initLoginUI();
 
 /* ========= View Switch ========= */
 function show(view){
- [viewLogin,viewWait,viewHost].forEach(v=>v.classList.add('hidden'));
+ [viewLogin, viewWait, viewHost].forEach(v => v.classList.add('hidden'));
  view.classList.remove('hidden');
 }
 
@@ -124,7 +120,6 @@ btnJoin.addEventListener('click', ()=>{
  if(!val) return alert("不可空白");
 
  if(isHost){
-   // 主持人驗證
    if(val === HOST_PASSWORD){
      myName = "管理員";
      show(viewHost);
@@ -132,16 +127,16 @@ btnJoin.addEventListener('click', ()=>{
      alert("主持人密碼錯誤");
    }
  }else{
-   // 玩家
    myName = val;
    show(viewWait);
  }
 });
 
-/* ========= Host Start ========= */
-document.getElementById('btn-start').onclick = ()=>{
- alert("主持人已登入，可接續遊戲流程");
-};
+/* ========= Host Start Game ========= */
+btnStart.addEventListener('click', ()=>{
+ // 這裡未來可接 Firebase 同步遊戲狀態
+ show(viewWait);
+});
 </script>
 
 </body>
